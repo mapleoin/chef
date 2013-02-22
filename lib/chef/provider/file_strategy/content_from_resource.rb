@@ -30,7 +30,7 @@ class Chef
           @tempfile.unlink unless @tempfile.nil?
         end
 
-        def contents_changed?
+        def contents_changed?(current_resource)
           return false if @new_resource.content.nil?
           super
         end
