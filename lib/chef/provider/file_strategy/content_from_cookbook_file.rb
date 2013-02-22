@@ -22,8 +22,8 @@ class Chef
   class Provider
     class FileStrategy
       class ContentFromCookbookFile < ContentStrategy
-        def filename
-          @filename ||= begin
+        def tempfile
+          @tempfile ||= begin
                           cookbook = run_context.cookbook_collection[resource_cookbook]
                           file_cache_location = cookbook.preferred_filename_on_disk_location(run_context.node, :files, @new_resource.source, @new_resource.path)
                           if file_cache_location.nil?
@@ -33,22 +33,9 @@ class Chef
                             @tempfile.close
                             Chef::Log.debug("#{@new_resource} staging #{file_cache_location} to #{@tempfile.path}")
                             FileUtils.cp(file_cache_location, @tempfile.path)
-                            @tempfile.path
+                            @tempfile
                           end
                         end
-        end
-
-        def contents_changed?(current_resource)
-          !checksum.nil? && checksum != current_resource.checksum
-        end
-
-        def checksum
-          return nil if filename.nil?
-          Chef::Digester.checksum_for_file(filename)
-        end
-
-        def cleanup
-          @tempfile.unlink unless @tempfile.nil?
         end
 
         private

@@ -25,14 +25,12 @@ class Chef
     class Template < Chef::Provider::File
 
       def initialize(new_resource, run_context)
-        @content_strategy = ::Chef::Provider::FileStrategy::ContentFromTemplate.new(new_resource, run_context)
+        @content_strategy = Chef::Provider::FileStrategy::ContentFromTemplate
         super
       end
 
       def load_current_resource
         @current_resource = Chef::Resource::Template.new(@new_resource.name)
-        @content_strategy.template_location = template_location # FIXME: lcr or initialize?
-        @content_strategy.template_finder = template_finder # FIXME: lcr or initialize?
         super
       end
 
@@ -40,24 +38,10 @@ class Chef
         super
 
         requirements.assert(:create, :create_if_missing) do |a|
-          a.assertion { ::File::exist?(template_location) }
-          a.failure_message "Template source #{template_location} could not be found."
-          a.whyrun "Template source #{template_location} does not exist. Assuming it would have been created."
+          a.assertion { ::File::exist?(content_object.template_location) }
+          a.failure_message "Template source #{content_object.template_location} could not be found."
+          a.whyrun "Template source #{content_object.template_location} does not exist. Assuming it would have been created."
           a.block_action!
-        end
-      end
-
-      private
-
-      def template_finder
-        @template_finder ||= begin
-          TemplateFinder.new(run_context, cookbook_name, node)
-        end
-      end
-
-      def template_location
-        @template_file_cache_location ||= begin
-          template_finder.find(@new_resource.source, :local => @new_resource.local, :cookbook => @new_resource.cookbook)
         end
       end
 

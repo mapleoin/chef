@@ -22,30 +22,18 @@ class Chef
   class Provider
     class FileStrategy
       class ContentFromResource < ContentStrategy
-        def filename
-          @filename ||= tempfile.path
-        end
-
-        def cleanup
-          @tempfile.unlink unless @tempfile.nil?
-        end
-
-        def contents_changed?(current_resource)
-          return false if @new_resource.content.nil?
-          super
-        end
-
-        private
-
         def tempfile
           @tempfile ||= begin
-            tempfile = Tempfile.open(::File.basename(@new_resource.name))
-            tempfile.write(@new_resource.content)
-            tempfile.close
-            tempfile
-          end
+                          if @new_resource.content
+                            tempfile = Tempfile.open(::File.basename(@new_resource.name))
+                            tempfile.write(@new_resource.content)
+                            tempfile.close
+                            tempfile
+                          else
+                            nil
+                          end
+                        end
         end
-
       end
     end
   end

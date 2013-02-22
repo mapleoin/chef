@@ -22,25 +22,27 @@ class Chef
       class ContentStrategy
         attr_accessor :run_context
 
-        def initialize(new_resource, run_context)
+        def initialize(new_resource, current_resource, run_context)
           @new_resource = new_resource
+          @current_resource = current_resource
           @run_context = run_context
         end
 
-        def contents_changed?(current_resource)
-          checksum != current_resource.checksum
+        def contents_changed?
+          !checksum.nil? && checksum != @current_resource.checksum
         end
 
-        def filename
-          raise "class must implement filename!"
+        def tempfile
+          raise "class must implement tempfile!"
         end
 
         def checksum
-          Chef::Digester.checksum_for_file(filename)
+          return nil if tempfile.nil? || tempfile.path.nil?
+          Chef::Digester.checksum_for_file(tempfile.path)
         end
 
         def cleanup
-          raise "class must implement cleanup!"
+          tempfile.unlink unless tempfile.nil?
         end
       end
     end

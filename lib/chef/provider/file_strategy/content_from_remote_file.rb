@@ -26,8 +26,8 @@ class Chef
   class Provider
     class FileStrategy
       class ContentFromRemoteFile < ContentStrategy
-        def filename
-          @filename ||= begin
+        def tempfile
+          @tempfile ||= begin
                           Chef::Log.debug("#{@new_resource} checking for changes")
 
                           if current_resource_matches_target_checksum?
@@ -48,22 +48,9 @@ class Chef
                               end
                             end
                           end
-                          raw_file.path unless raw_file.nil?
+                          raw_file
                         end
 
-        end
-
-        def contents_changed?(current_resource)
-          !checksum.nil? && checksum != current_resource.checksum
-        end
-
-        def checksum
-          return nil if filename.nil?
-          Chef::Digester.checksum_for_file(filename)
-        end
-
-        def cleanup
-          FileUtils.rm_f(filename) unless filename.nil?
         end
 
         private
