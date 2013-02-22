@@ -22,10 +22,6 @@ class Chef
   class Provider
     class FileStrategy
       class ContentFromResource < ContentStrategy
-        def has_content?
-          @new_resource.content != nil
-        end
-
         def filename
           @filename ||= tempfile.path
         end

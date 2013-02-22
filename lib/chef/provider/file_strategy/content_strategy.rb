@@ -27,11 +27,6 @@ class Chef
           @run_context = run_context
         end
 
-        def has_content?
-          # most providers will always have content
-          true
-        end
-
         def contents_changed?(current_resource)
           checksum != current_resource.checksum
         end
