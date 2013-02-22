@@ -111,47 +111,40 @@ class Chef
       def tempfile_to_destfile
         backup @new_resource.path if ::File.exists?(@new_resource.path)
         filename = @content_strategy.filename
-        # touch only when creating a file that does not exist, in order to get default perms right based on umask
-        FileUtils.touch(@new_resource.path) unless ::File.exists?(@new_resource.path)
-        FileUtils.cp(filename, @new_resource.path)
+        FileUtils.cp(filename, @new_resource.path) if filename && ::File.exists?(filename)
         @content_strategy.cleanup
       end
 
-      def do_update_file
-        description = []
-        description << "update content in file #{@new_resource.path} from #{short_cksum(@current_resource.checksum)} to #{short_cksum(@content_strategy.checksum)}"
-        description << diff(@content_strategy.filename)
-        converge_by(description) do
-          tempfile_to_destfile
-          Chef::Log.info("#{@new_resource} updated file #{@new_resource.path}")
+      def do_contents_changes
+        if @content_strategy.contents_changed?(@current_resource)
+          description = []
+          description << "update content in file #{@new_resource.path} from #{short_cksum(@current_resource.checksum)} to #{short_cksum(@content_strategy.checksum)}"
+          description << diff(@content_strategy.filename)
+          converge_by(description) do
+            tempfile_to_destfile
+            Chef::Log.info("#{@new_resource} updated file contents #{@new_resource.path}")
+          end
         end
         # the cleanup in the converge_by will not be run in whyrun-mode
         @content_strategy.cleanup if whyrun_mode?
       end
 
+      # because we touch first to create files, we get umasks and inherit
+      # SElinux dir perms and other nice things which we would not get by simply
+      # flipping a tempfile into place
       def do_create_file
-        description = []
-        description << "create new file #{@new_resource.path}"
-        description << " with content checksum #{short_cksum(@content_strategy.checksum)}"
-        description << diff(@content_strategy.filename)
-        converge_by(description) do
-          tempfile_to_destfile
-          Chef::Log.info("#{@new_resource} created file #{@new_resource.path}")
+        unless ::File.exists?(@new_resource.path)
+          description = "create new file #{new_resource.path}"
+          converge_by(description) do
+            FileUtils.touch(@new_resource.path)
+            Chef::Log.info("#{@new_resource} created file #{@new_resource.path}")
+          end
         end
-        # the cleanup in the converge_by will not be run in whyrun-mode
-        @content_strategy.cleanup if whyrun_mode?
       end
 
       def action_create
-        if @content_strategy.has_content?
-          if !::File.exists?(@new_resource.path)
-            do_create_file
-          else
-            if @content_strategy.contents_changed?(@current_resource)
-              do_update_file
-            end
-          end
-        end
+        do_create_file
+        do_contents_changes
         do_acl_changes
         load_resource_attributes_from_file(@new_resource)
       end
