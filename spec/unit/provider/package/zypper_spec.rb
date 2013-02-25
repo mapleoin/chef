@@ -93,8 +93,17 @@ describe Chef::Provider::Package::Zypper do
   describe "install_package" do
     it "should run zypper install with the package name and version" do
       @provider.should_receive(:run_command).with({
+          :command => "zypper -n install -l  emacs=1.0",
+        })
+      @provider.install_package("emacs", "1.0")
+    end
+
+    it "should run zypper install without gpg checks" do
+      @provider.should_receive(:run_command).with({
           :command => "zypper -n --no-gpg-checks install -l  emacs=1.0",
         })
+      @new_resource.stub!(:options).and_return("--no-gpg-checks")
+
       @provider.install_package("emacs", "1.0")
     end
   end
@@ -102,8 +111,16 @@ describe Chef::Provider::Package::Zypper do
   describe "upgrade_package" do
     it "should run zypper update with the package name and version" do
       @provider.should_receive(:run_command).with({
+          :command => "zypper -n install -l emacs=1.0",
+        })
+      @provider.upgrade_package("emacs", "1.0")
+    end
+    it "should run zypper upgrade without gpg checks" do
+      @provider.should_receive(:run_command).with({
           :command => "zypper -n --no-gpg-checks install -l emacs=1.0",
         })
+      @new_resource.stub!(:options).and_return("--no-gpg-checks")
+
       @provider.upgrade_package("emacs", "1.0")
     end
   end
@@ -111,8 +128,17 @@ describe Chef::Provider::Package::Zypper do
   describe "remove_package" do
     it "should run zypper remove with the package name" do
       @provider.should_receive(:run_command).with({
-          :command => "zypper -n --no-gpg-checks remove  emacs=1.0",
+          :command => "zypper -n remove emacs=1.0",
         })
+      @provider.remove_package("emacs", "1.0")
+    end
+
+    it "should run zypper remove without gpg checks" do
+      @provider.should_receive(:run_command).with({
+          :command => "zypper -n --no-gpg-checks remove emacs=1.0",
+        })
+      @new_resource.stub!(:options).and_return("--no-gpg-checks")
+
       @provider.remove_package("emacs", "1.0")
     end
   end
