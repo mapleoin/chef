@@ -19,14 +19,15 @@
 require 'chef/provider/package'
 require 'chef/mixin/command'
 require 'chef/resource/package'
+require 'chef/mixin/shell_out'
 require 'singleton'
 
 class Chef
   class Provider
     class Package
       class Zypper < Chef::Provider::Package  
-      
- 
+        include Chef::Mixin::ShellOut
+
         def load_current_resource
           @current_resource = Chef::Resource::Package.new(@new_resource.name)
           @current_resource.package_name(@new_resource.package_name)
@@ -79,65 +80,39 @@ class Chef
           @current_resource
         end
         
-        #Gets the zypper Version from command output (Returns Floating Point number)
+        # Get the zypper Version from command output
+        # Return a Floating Point number
         def zypper_version()
           `zypper -V 2>&1`.scan(/\d+/).join(".").to_f
         end
 
         def install_package(name, version)
-          if zypper_version < 1.0
-            run_command(
-              :command => "zypper install -y #{name}"
-            )
-          elsif version
-            run_command(
-              :command => "zypper -n#{expand_options(@new_resource.options)} install -l  #{name}=#{version}"
-            )
-          else
-            run_command(
-              :command => "zypper -n#{expand_options(@new_resource.options)} install -l  #{name}"
-            )
-          end
+          zypper_package("install --auto-agree-with-licenses", name, version)
         end
 
         def upgrade_package(name, version)
-          if zypper_version < 1.0
-            run_command(
-              :command => "zypper install -y #{name}"
-            )
-          elsif version
-            run_command(
-              :command => "zypper -n#{expand_options(@new_resource.options)} install -l #{name}=#{version}"
-            )
-          else
-            run_command(
-              :command => "zypper -n#{expand_options(@new_resource.options)} install -l #{name}"
-            )
-          end
+          install_package(name, version)
         end
 
         def remove_package(name, version)
-          if zypper_version < 1.0
-            run_command(
-              :command => "zypper remove -y #{name}"
-            )
-          elsif version
-            run_command(
-              :command => "zypper -n#{expand_options(@new_resource.options)} remove #{name}=#{version}"
-            )
-          else
-            run_command(
-              :command => "zypper -n#{expand_options(@new_resource.options)} remove #{name}"
-            )
-          end
-            
-         
+          zypper_package("remove", name, version)
         end
       
         def purge_package(name, version)
-          remove_package(name, version)
+          zypper_package("remove --clean-deps", name, version)
         end
-      
+
+        private
+        def zypper_package(command, pkgname, version)
+          version = "=#{version}" unless version.empty?
+          if zypper_version < 1.0
+            shell_out!("zypper#{expand_options(@new_resource.options)} "+
+              "#{command} -y #{pkgname}")
+          else
+            shell_out!("zypper#{expand_options(@new_resource.options)} "+
+              "--non-interactive #{command} #{pkgname}#{version}")
+          end
+        end
       end
     end
   end
